@@ -1,0 +1,38 @@
+
+name: 02 - .NET CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build and Test .NET 10
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Show SDK version
+        run: dotnet --version
+
+      - name: Restore dependencies
+        run: dotnet restore GithubActionsDemo.slnx
+
+      - name: Build solution
+        run: dotnet build GithubActionsDemo.slnx --no-restore --configuration Release
+
+      - name: Run unit tests
+        run: dotnet test GithubActionsDemo.slnx --no-restore --configuration Release
