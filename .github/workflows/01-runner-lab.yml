@@ -1,0 +1,39 @@
+
+name: 01 - Runner Lab
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  explore-runner:
+    name: Explore GitHub Runner
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Runner information
+        run: |
+          echo "Operating system: $RUNNER_OS"
+          echo "Workspace: $GITHUB_WORKSPACE"
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "Branch or ref: $GITHUB_REF"
+          echo "Commit SHA: $GITHUB_SHA"
+          echo "Current directory:"
+          pwd
+
+      - name: List files before checkout
+        run: ls -la
+
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: List files after checkout
+        run: |
+          ls -la
+          ls src
+          ls tests
+
+      - name: Check .NET SDK
+        run: dotnet --info
