@@ -1,0 +1,42 @@
+name: 04 - Job Failure Lab
+
+on:
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    job-a:
+        name: Job A - Failing
+        runs-on: ubuntu-latest
+        steps:
+            - name: Simulate failure
+              run: exit 1
+
+    job-b:
+        name: Job B - Default Dependency
+        needs: job-a
+        runs-on: ubuntu-latest
+        steps:
+            - name: This should be skipped
+              run: echo "Job B started"
+
+    job-c:
+        name: Job C - Run Regardless
+        needs: job-a
+        if: ${{ always() }}
+        runs-on: ubuntu-latest
+        steps:
+            - name: Inspect dependency
+              run: |
+                  echo "Job A result: ${{ needs.job-a.result }}"
+
+    job-d:
+        name: Job D - Run on Failure
+        needs: job-a
+        if: ${{ failure() }}
+        runs-on: ubuntu-latest
+        steps:
+            - name: Handle failure
+              run: echo "Handling Job A failure"
