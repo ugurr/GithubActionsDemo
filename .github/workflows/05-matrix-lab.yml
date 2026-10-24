@@ -1,0 +1,42 @@
+name: 05 - Matrix Lab
+
+on:
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    build:
+        name: Build on ${{ matrix.os }}
+        runs-on: ${{ matrix.os }}
+
+        strategy:
+            fail-fast: false
+            matrix:
+                os: [ubuntu-latest, windows-latest]
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Setup .NET 10
+              uses: actions/setup-dotnet@v6
+              with:
+                  dotnet-version: "10.0.x"
+
+            - name: Show environment
+              shell: pwsh
+              run: |
+                  Write-Host "OS: $env:RUNNER_OS"
+                  Write-Host "Runner: $env:RUNNER_NAME"
+                  dotnet --version
+
+            - name: Restore
+              run: dotnet restore GithubActionsDemo.slnx
+
+            - name: Build
+              run: dotnet build GithubActionsDemo.slnx --configuration Release --no-restore
+
+            - name: Test
+              run: dotnet test GithubActionsDemo.slnx --configuration Release --no-build
