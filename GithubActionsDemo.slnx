@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/GithubActionsDemo.Web/">
+    <Project Path="src/GithubActionsDemo.Web/GithubActionsDemo.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/GithubActionsDemo.Tests/GithubActionsDemo.Tests.csproj" />
+  </Folder>
+</Solution>
