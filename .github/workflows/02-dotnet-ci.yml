@@ -1,4 +1,3 @@
-
 name: 02 - .NET CI
 
 on:
@@ -23,7 +22,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: "10.0.x"
 
       - name: Show SDK version
         run: dotnet --version
@@ -35,4 +34,35 @@ jobs:
         run: dotnet build GithubActionsDemo.slnx --no-restore --configuration Release
 
       - name: Run unit tests
-        run: dotnet test GithubActionsDemo.slnx --no-restore --configuration Release
+        run: |
+          dotnet test GithubActionsDemo.slnx \
+          --no-restore \
+          --configuration Release \
+          --logger "trx;LogFileName=unit-tests.trx" \
+          --results-directory ./TestResults
+
+      - name: Runs only after success
+        if: ${{ success() }}
+        run: echo "Previous steps succeeded."
+
+      - name: Runs when a step fails
+        if: ${{ failure() }}
+        run: echo "A previous step failed."
+
+      - name: Inspect test results
+        if: ${{ always() }}
+        run: |
+          echo "Inspecting test results..."
+          if [ -d TestResults ]; then
+            ls -la TestResults
+          else
+            echo "TestResults directory not found."
+          fi
+
+      - name: Upload test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: TestResults/
+          if-no-files-found: warn
