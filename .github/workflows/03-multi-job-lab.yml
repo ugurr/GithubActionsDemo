@@ -1,0 +1,65 @@
+
+name: 03 - Multi Job Lab
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  job-a:
+    name: Job A - Producer
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Show runner information
+        run: |
+          echo "JOB A"
+          echo "Runner name: $RUNNER_NAME"
+          echo "Runner OS: $RUNNER_OS"
+          echo "Workspace: $GITHUB_WORKSPACE"
+          hostname
+          date -u +"%H:%M:%S"
+
+      - name: Create a file
+        run: |
+          echo "Hello from Job A" > message.txt
+          cat message.txt
+
+      - name: Simulate work
+        run: |
+          echo "Job A started working"
+          sleep 20
+          echo "Job A finished working"
+
+  job-b:
+    name: Job B - Consumer
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Show runner information
+        run: |
+          echo "JOB B"
+          echo "Runner name: $RUNNER_NAME"
+          echo "Runner OS: $RUNNER_OS"
+          echo "Workspace: $GITHUB_WORKSPACE"
+          hostname
+          date -u +"%H:%M:%S"
+
+      - name: Simulate work
+        run: |
+          echo "Job B started working"
+          sleep 20
+          echo "Job B finished working"
+
+      - name: Check if Job A file exists
+        run: |
+          echo "Checking for message.txt"
+
+          if [ -f message.txt ]; then
+            echo "File found!"
+            cat message.txt
+          else
+            echo "File does not exist in Job B."
+          fi
