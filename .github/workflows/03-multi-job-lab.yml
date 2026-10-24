@@ -1,4 +1,3 @@
-
 name: 03 - Multi Job Lab
 
 on:
@@ -27,6 +26,13 @@ jobs:
           echo "Hello from Job A" > message.txt
           cat message.txt
 
+      - name: Upload message artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: job-a-message
+          path: message.txt
+          if-no-files-found: error
+
       - name: Simulate work
         run: |
           echo "Job A started working"
@@ -52,6 +58,12 @@ jobs:
           echo "Job B started working"
           sleep 20
           echo "Job B finished working"
+
+      - name: Download message artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: job-a-message
+          path: .
 
       - name: Check if Job A file exists
         run: |
