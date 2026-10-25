@@ -38,7 +38,7 @@ jobs:
                   dotnet test tests/GithubActionsDemo.Tests/GithubActionsDemo.Tests.csproj
                   --configuration Release
                   --no-build
-                  --collect:"XPlat Code Coverage"
+                  --collect:"XPlat Code Coverage;Format=cobertura,opencover"
                   --logger "trx;LogFileName=unit-tests.trx"
                   --results-directory ./TestResults
 
