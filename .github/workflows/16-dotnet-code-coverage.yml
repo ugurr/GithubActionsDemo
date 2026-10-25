@@ -65,3 +65,46 @@ jobs:
                   name: dotnet-coverage-html
                   path: CoverageReport/
                   if-no-files-found: error
+
+    coverage-quality-gate:
+        name: Validate 80 Percent Line Coverage
+        needs: test-and-coverage
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Download Cobertura coverage report
+              uses: actions/download-artifact@v4
+              with:
+                  name: dotnet-test-coverage-${{ github.run_number }}
+                  path: ./coverage-data
+
+            - name: Validate line coverage threshold
+              env:
+                  MIN_LINE_COVERAGE: "80"
+              run: |
+                  python3 - <<'PY'
+                  import glob
+                  import os
+                  import sys
+                  import xml.etree.ElementTree as ET
+
+                  files = glob.glob("coverage-data/**/coverage.cobertura.xml", recursive=True)
+                  if not files:
+                      sys.exit("Cobertura coverage report not found")
+
+                  root = ET.parse(files[0]).getroot()
+                  actual = float(root.attrib["line-rate"]) * 100
+                  minimum = float(os.environ["MIN_LINE_COVERAGE"])
+
+                  print(f"Actual line coverage: {actual:.2f}%")
+                  print(f"Required line coverage: {minimum:.2f}%")
+
+                  with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+                      summary.write(f"## Coverage Quality Gate\n\n")
+                      summary.write(f"- Actual: {actual:.2f}%\n")
+                      summary.write(f"- Required: {minimum:.2f}%\n")
+                      summary.write(f"- Result: {'PASS' if actual >= minimum else 'FAIL'}\n")
+
+                  if actual < minimum:
+                      sys.exit("Coverage quality gate failed")
+                  PY
