@@ -1,0 +1,51 @@
+name: 16 - .NET Code Coverage
+
+on:
+    push:
+        branches: [main]
+        paths:
+            - "src/**"
+            - "tests/**"
+            - ".github/workflows/16-dotnet-code-coverage.yml"
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    test-and-coverage:
+        name: xUnit Tests and Coverage
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout source
+              uses: actions/checkout@v4
+
+            - name: Verify .NET SDK
+              run: dotnet --version
+
+            - name: Restore locked dependencies
+              run: dotnet restore GithubActionsDemo.slnx --locked-mode
+
+            - name: Build solution
+              run: >
+                  dotnet build GithubActionsDemo.slnx
+                  --configuration Release
+                  --no-restore
+
+            - name: Run xUnit tests with coverage
+              run: >
+                  dotnet test tests/GithubActionsDemo.Tests/GithubActionsDemo.Tests.csproj
+                  --configuration Release
+                  --no-build
+                  --collect:"XPlat Code Coverage"
+                  --logger "trx;LogFileName=unit-tests.trx"
+                  --results-directory ./TestResults
+
+            - name: Upload test and coverage reports
+              if: ${{ !cancelled() }}
+              uses: actions/upload-artifact@v4
+              with:
+                  name: dotnet-test-coverage-${{ github.run_number }}
+                  path: TestResults/
+                  if-no-files-found: error
