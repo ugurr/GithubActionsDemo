@@ -1,0 +1,50 @@
+name: 12 - .NET PR CI
+
+on:
+    pull_request:
+        types: [opened, synchronize, reopened]
+        branches: [main]
+        paths:
+            - "src/**"
+            - "tests/**"
+            - ".github/workflows/12-dotnet-pr-ci.yml"
+
+permissions:
+    contents: read
+
+concurrency:
+    group: pr-ci-${{ github.workflow }}-${{ github.event.pull_request.number }}
+    cancel-in-progress: true
+
+jobs:
+    dotnet-ci:
+        name: ASP.NET Core Build and Test
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout PR
+              uses: actions/checkout@v4
+
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v6
+              with:
+                  dotnet-version: "10.0.x"
+
+            - name: Restore
+              run: dotnet restore GithubActionsDemo.slnx
+
+            - name: Build
+              run: dotnet build GithubActionsDemo.slnx -c Release --no-restore
+
+            - name: Unit Tests
+              run: dotnet test GithubActionsDemo.slnx -c Release --no-build
+
+            - name: Print PR information
+              env:
+                  PR_NUMBER: ${{ github.event.pull_request.number }}
+                  SOURCE_BRANCH: ${{ github.head_ref }}
+                  TARGET_BRANCH: ${{ github.base_ref }}
+              run: |
+                  echo "PR: $PR_NUMBER"
+                  echo "Source: $SOURCE_BRANCH"
+                  echo "Target: $TARGET_BRANCH"

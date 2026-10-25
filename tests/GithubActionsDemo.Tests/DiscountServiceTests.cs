@@ -1,3 +1,4 @@
+// PR CI laboratory: validating ASP.NET Core build and tests.
 using GithubActionsDemo.Services;
 
 namespace GithubActionsDemo.Tests;
