@@ -46,3 +46,9 @@ jobs:
 
             - name: Unit Tests
               run: dotnet test GithubActionsDemo.slnx -c Release --no-build
+
+            - name: Simulate .NET 11 compatibility failure
+              if: ${{ matrix.sdk == '11.0.x' }}
+              run: |
+                  echo "Simulating a compatibility issue with .NET 11"
+                  exit 1
