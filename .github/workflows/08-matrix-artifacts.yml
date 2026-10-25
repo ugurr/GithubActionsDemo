@@ -1,0 +1,78 @@
+name: 08 - Matrix Artifact Aggregation
+
+on:
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    test:
+        name: Test ${{ matrix.os }} - ${{ matrix.configuration }}
+        runs-on: ${{ matrix.os }}
+
+        strategy:
+            fail-fast: false
+            matrix:
+                os: [ubuntu-latest, windows-latest]
+                configuration: [Debug, Release]
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v6
+              with:
+                  dotnet-version: "10.0.x"
+
+            - name: Restore
+              run: dotnet restore GithubActionsDemo.slnx
+
+            - name: Build
+              run: dotnet build GithubActionsDemo.slnx -c ${{ matrix.configuration }} --no-restore
+
+            - name: Test with TRX
+              run: >
+                  dotnet test GithubActionsDemo.slnx
+                  -c ${{ matrix.configuration }}
+                  --no-build
+                  --logger "trx;LogFileName=results.trx"
+                  --results-directory ./TestResults
+
+            - name: Upload test results
+              if: ${{ !cancelled() }}
+              uses: actions/upload-artifact@v4
+              with:
+                  name: trx-${{ matrix.os }}-${{ matrix.configuration }}
+                  path: TestResults/
+                  if-no-files-found: error
+
+    collect-reports:
+        name: Collect Test Reports
+        needs: test
+        if: ${{ !cancelled() }}
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Download all TRX artifacts
+              uses: actions/download-artifact@v4
+              with:
+                  pattern: trx-*
+                  path: ./combined-results
+                  merge-multiple: false
+
+            - name: List collected reports
+              shell: pwsh
+              run: |
+                  Get-ChildItem ./combined-results -Recurse
+
+                  $reports = @(
+                    Get-ChildItem ./combined-results -Recurse -Filter *.trx
+                  )
+
+                  Write-Host "Total TRX reports: $($reports.Count)"
+
+                  if ($reports.Count -ne 4) {
+                    throw "Expected 4 TRX reports"
+                  }
