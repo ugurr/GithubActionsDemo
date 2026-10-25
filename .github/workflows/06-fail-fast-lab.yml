@@ -1,33 +1,32 @@
-
 name: 06 - Fail Fast Lab
 
 on:
-  workflow_dispatch:
+    workflow_dispatch:
 
 permissions:
-  contents: read
+    contents: read
 
 jobs:
-  experiment:
-    name: Experiment - ${{ matrix.scenario }}
-    runs-on: ubuntu-latest
+    experiment:
+        name: Experiment - ${{ matrix.scenario }}
+        runs-on: ubuntu-latest
 
-    strategy:
-      fail-fast: true
-      matrix:
-        scenario: [fail, slow-a, slow-b]
+        strategy:
+            fail-fast: false
+            matrix:
+                scenario: [fail, slow-a, slow-b]
 
-    steps:
-      - name: Show scenario
-        run: echo "Scenario is ${{ matrix.scenario }}"
+        steps:
+            - name: Show scenario
+              run: echo "Scenario is ${{ matrix.scenario }}"
 
-      - name: Execute experiment
-        run: |
-          if [ "${{ matrix.scenario }}" = "fail" ]; then
-            echo "Simulating a failure..."
-            exit 1
-          fi
+            - name: Execute experiment
+              run: |
+                  if [ "${{ matrix.scenario }}" = "fail" ]; then
+                    echo "Simulating a failure..."
+                    exit 1
+                  fi
 
-          echo "Starting long-running task..."
-          sleep 60
-          echo "Task completed successfully."
+                  echo "Starting long-running task..."
+                  sleep 60
+                  echo "Task completed successfully."
