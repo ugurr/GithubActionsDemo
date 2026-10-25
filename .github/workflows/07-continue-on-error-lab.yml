@@ -22,7 +22,7 @@ jobs:
                       quality: "ga"
 
                     - sdk: "11.0.x"
-                      allow-failure: true
+                      allow-failure: false
                       quality: "preview"
 
         steps:
