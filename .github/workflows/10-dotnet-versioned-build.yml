@@ -138,7 +138,7 @@ jobs:
 
             - name: Verify published assembly
               run: |
-                  test -f ./downloaded-app/GithubActionsDemo.Web.dll
+                  test -f ./downloaded-app/GithubActionsDemo.dll
                   echo "Application package verified"
 
             - name: Write GitHub run summary
