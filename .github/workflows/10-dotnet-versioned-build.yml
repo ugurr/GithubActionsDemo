@@ -93,7 +93,7 @@ jobs:
               env:
                   APP_VERSION: ${{ needs.prepare-version.outputs.version }}
               run: |
-                  dotnet publish src/GithubActionsDemo.Web/GithubActionsDemo.Web.csproj \
+                  dotnet publish src/GithubActionsDemo.Web/GithubActionsDemo.csproj \
                     -c Release \
                     --no-restore \
                     --no-build \
