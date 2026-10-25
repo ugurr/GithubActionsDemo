@@ -1,0 +1,43 @@
+name: 13 - .NET NuGet Cache
+
+on:
+    push:
+        branches: [main]
+        paths:
+            - "src/**"
+            - "tests/**"
+            - ".github/workflows/13-dotnet-nuget-cache.yml"
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    build-and-test:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup .NET and cache
+              id: dotnet
+              uses: actions/setup-dotnet@v6
+              with:
+                  dotnet-version: "10.0.x"
+                  cache: true
+                  cache-dependency-path: "**/packages.lock.json"
+
+            - name: Show cache result
+              env:
+                  CACHE_HIT: ${{ steps.dotnet.outputs.cache-hit }}
+              run: echo "Cache hit = $CACHE_HIT"
+
+            - name: Restore in locked mode
+              run: dotnet restore GithubActionsDemo.slnx --locked-mode
+
+            - name: Build
+              run: dotnet build GithubActionsDemo.slnx -c Release --no-restore
+
+            - name: Test
+              run: dotnet test GithubActionsDemo.slnx -c Release --no-build
