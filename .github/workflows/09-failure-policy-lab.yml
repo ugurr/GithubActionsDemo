@@ -1,0 +1,47 @@
+
+name: 09 - Failure Policy Lab
+
+on:
+  workflow_dispatch:
+    inputs:
+      failing_target:
+        description: "Which SDK should fail?"
+        required: true
+        type: choice
+        options:
+          - stable
+          - preview
+
+permissions:
+  contents: read
+
+jobs:
+  compatibility:
+    name: ${{ matrix.sdk_name }}
+    runs-on: ubuntu-latest
+
+    continue-on-error: ${{ matrix.allow_failure }}
+
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - sdk_name: stable
+            allow_failure: false
+          - sdk_name: preview
+            allow_failure: true
+
+    steps:
+      - name: Simulate compatibility check
+        env:
+          SDK_NAME: ${{ matrix.sdk_name }}
+          FAILING_TARGET: ${{ inputs.failing_target }}
+        run: |
+          echo "Checking $SDK_NAME"
+
+          if [ "$SDK_NAME" = "$FAILING_TARGET" ]; then
+            echo "Compatibility check failed"
+            exit 1
+          fi
+
+          echo "Compatibility check passed"
