@@ -1,0 +1,159 @@
+name: 10 - .NET Versioned Build
+
+on:
+    workflow_dispatch:
+    push:
+        branches: [main]
+        paths:
+            - "src/**"
+            - "tests/**"
+            - "10-dotnet-versioned-build.yml"
+            - ".github/workflows/10-dotnet-versioned-build.yml"
+
+permissions:
+    contents: read
+
+jobs:
+    prepare-version:
+        name: Prepare Build Metadata
+        runs-on: ubuntu-latest
+
+        outputs:
+            version: ${{ steps.version.outputs.number }}
+            short_sha: ${{ steps.version.outputs.short_sha }}
+            source_branch: ${{ steps.version.outputs.branch }}
+
+        steps:
+            - name: Calculate version
+              id: version
+              env:
+                  RUN_NUMBER: ${{ github.run_number }}
+                  COMMIT_SHA: ${{ github.sha }}
+                  BRANCH_NAME: ${{ github.ref_name }}
+              run: |
+                  SHORT_SHA="${COMMIT_SHA:0:7}"
+                  VERSION="1.0.${RUN_NUMBER}"
+
+                  echo "number=$VERSION" >> "$GITHUB_OUTPUT"
+                  echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
+                  echo "branch=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
+
+                  echo "Generated version: $VERSION"
+                  echo "Commit: $SHORT_SHA"
+                  echo "Branch: $BRANCH_NAME"
+
+    build-and-test:
+        name: Build and Test .NET
+        needs: prepare-version
+        runs-on: ubuntu-latest
+
+        outputs:
+            package_name: ${{ steps.package.outputs.name }}
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup .NET SDK
+              uses: actions/setup-dotnet@v6
+              with:
+                  dotnet-version: "10.0.x"
+
+            - name: Show build metadata
+              env:
+                  APP_VERSION: ${{ needs.prepare-version.outputs.version }}
+                  SHORT_SHA: ${{ needs.prepare-version.outputs.short_sha }}
+                  SOURCE_BRANCH: ${{ needs.prepare-version.outputs.source_branch }}
+              run: |
+                  echo "Version: $APP_VERSION"
+                  echo "Commit: $SHORT_SHA"
+                  echo "Branch: $SOURCE_BRANCH"
+                  echo "Runner OS: $RUNNER_OS"
+
+            - name: Restore
+              run: dotnet restore GithubActionsDemo.slnx
+
+            - name: Build with version
+              env:
+                  APP_VERSION: ${{ needs.prepare-version.outputs.version }}
+              run: |
+                  dotnet build GithubActionsDemo.slnx \
+                    -c Release \
+                    --no-restore \
+                    -p:Version="$APP_VERSION" \
+                    -p:ContinuousIntegrationBuild=true
+
+            - name: Run unit tests
+              run: |
+                  dotnet test GithubActionsDemo.slnx \
+                    -c Release \
+                    --no-build
+
+            - name: Publish ASP.NET Core application
+              env:
+                  APP_VERSION: ${{ needs.prepare-version.outputs.version }}
+              run: |
+                  dotnet publish src/GithubActionsDemo.Web/GithubActionsDemo.Web.csproj \
+                    -c Release \
+                    --no-restore \
+                    --no-build \
+                    -o ./publish
+
+            - name: Generate package name
+              id: package
+              env:
+                  APP_VERSION: ${{ needs.prepare-version.outputs.version }}
+              run: |
+                  echo "name=web-${APP_VERSION}" >> "$GITHUB_OUTPUT"
+
+            - name: Upload publish artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ${{ steps.package.outputs.name }}
+                  path: ./publish/
+                  if-no-files-found: error
+
+    release-summary:
+        name: Verify Build Metadata and Package
+        needs: [prepare-version, build-and-test]
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Print release metadata
+              env:
+                  APP_VERSION: ${{ needs.prepare-version.outputs.version }}
+                  SHORT_SHA: ${{ needs.prepare-version.outputs.short_sha }}
+                  PACKAGE_NAME: ${{ needs.build-and-test.outputs.package_name }}
+              run: |
+                  echo "Version: $APP_VERSION"
+                  echo "Commit: $SHORT_SHA"
+                  echo "Package: $PACKAGE_NAME"
+                  echo "Build result: ${{ needs.build-and-test.result }}"
+
+            - name: Download application package
+              uses: actions/download-artifact@v4
+              with:
+                  name: ${{ needs.build-and-test.outputs.package_name }}
+                  path: ./downloaded-app
+
+            - name: Verify published assembly
+              run: |
+                  test -f ./downloaded-app/GithubActionsDemo.Web.dll
+                  echo "Application package verified"
+
+            - name: Write GitHub run summary
+              env:
+                  APP_VERSION: ${{ needs.prepare-version.outputs.version }}
+                  SHORT_SHA: ${{ needs.prepare-version.outputs.short_sha }}
+                  PACKAGE_NAME: ${{ needs.build-and-test.outputs.package_name }}
+              run: |
+                  {
+                    echo "## .NET Build Summary"
+                    echo ""
+                    echo "| Property | Value |"
+                    echo "|---|---|"
+                    echo "| Version | $APP_VERSION |"
+                    echo "| Commit | $SHORT_SHA |"
+                    echo "| Artifact | $PACKAGE_NAME |"
+                    echo "| Result | Success |"
+                  } >> "$GITHUB_STEP_SUMMARY"
