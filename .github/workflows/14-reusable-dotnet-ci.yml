@@ -1,0 +1,58 @@
+name: 14 - Reusable .NET CI
+
+on:
+    workflow_call:
+        inputs:
+            solution-path:
+                description: Solution or project path
+                required: true
+                type: string
+
+            dotnet-version:
+                description: .NET SDK version
+                required: false
+                default: "10.0.x"
+                type: string
+
+        outputs:
+            build-result:
+                description: Result of the .NET CI job
+                value: ${{ jobs.dotnet-ci.outputs.build-result }}
+
+jobs:
+    dotnet-ci:
+        name: Reusable Build and Test
+        runs-on: ubuntu-latest
+
+        outputs:
+            build-result: ${{ steps.report-ci-result.outputs.result }}
+
+        steps:
+            - name: Checkout source
+              uses: actions/checkout@v4
+
+            - name: Setup .NET and NuGet cache
+              uses: actions/setup-dotnet@v6
+              with:
+                  dotnet-version: ${{ inputs.dotnet-version }}
+                  cache: true
+                  cache-dependency-path: "**/packages.lock.json"
+
+            - name: Restore dependencies
+              run: dotnet restore "${{ inputs.solution-path }}" --locked-mode
+
+            - name: Build solution
+              run: >
+                  dotnet build "${{ inputs.solution-path }}"
+                  --configuration Release
+                  --no-restore
+
+            - name: Run unit tests
+              run: >
+                  dotnet test "${{ inputs.solution-path }}"
+                  --configuration Release
+                  --no-build
+
+            - name: Export CI result
+              id: report-ci-result
+              run: echo "result=passed" >> "$GITHUB_OUTPUT"

@@ -1,0 +1,36 @@
+name: 15 - Call Reusable .NET CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - ".github/workflows/14-reusable-dotnet-ci.yml"
+      - ".github/workflows/15-call-reusable-dotnet-ci.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  run-shared-dotnet-ci:
+    name: Execute Shared .NET CI
+    uses: ./.github/workflows/14-reusable-dotnet-ci.yml
+    with:
+      solution-path: GithubActionsDemo.slnx
+      dotnet-version: "10.0.x"
+
+  verify-shared-result:
+    name: Verify Shared CI Result
+    needs: run-shared-dotnet-ci
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Verify reusable workflow output
+        env:
+          BUILD_RESULT: ${{ needs.run-shared-dotnet-ci.outputs.build-result }}
+        run: |
+          echo "Reusable CI result: $BUILD_RESULT"
+          test "$BUILD_RESULT" = "passed"
