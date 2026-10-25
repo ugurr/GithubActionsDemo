@@ -39,9 +39,6 @@ jobs:
       - name: Unit Tests
         run: dotnet test GithubActionsDemo.slnx -c Release --no-build
 
-      - name: Simulate long integration tests
-        run: sleep 60
-
       - name: Print PR information
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
