@@ -1,4 +1,5 @@
-// PR CI laboratory: validating ASP.NET Core build and tests.
+// PR CI laboratory: validating synchronize event.
+
 using GithubActionsDemo.Services;
 
 namespace GithubActionsDemo.Tests;
