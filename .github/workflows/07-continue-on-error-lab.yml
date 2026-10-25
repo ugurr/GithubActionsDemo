@@ -1,0 +1,48 @@
+name: 07 - Continue On Error Lab
+
+on:
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    compatibility-test:
+        name: .NET ${{ matrix.sdk }} Compatibility
+        runs-on: ubuntu-latest
+
+        continue-on-error: ${{ matrix.allow-failure }}
+
+        strategy:
+            fail-fast: true
+            matrix:
+                include:
+                    - sdk: "10.0.x"
+                      allow-failure: false
+                      quality: "ga"
+
+                    - sdk: "11.0.x"
+                      allow-failure: true
+                      quality: "preview"
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Setup .NET SDK
+              uses: actions/setup-dotnet@v6
+              with:
+                  dotnet-version: ${{ matrix.sdk }}
+                  dotnet-quality: ${{ matrix.quality }}
+
+            - name: Show installed SDKs
+              run: dotnet --list-sdks
+
+            - name: Restore
+              run: dotnet restore GithubActionsDemo.slnx
+
+            - name: Build
+              run: dotnet build GithubActionsDemo.slnx -c Release --no-restore
+
+            - name: Unit Tests
+              run: dotnet test GithubActionsDemo.slnx -c Release --no-build
