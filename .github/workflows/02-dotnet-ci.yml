@@ -28,8 +28,6 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: "10.0.x"
-          check-latest: false
-          skip-lts-prepass: true
 
       - name: Show SDK version
         run: dotnet --version
