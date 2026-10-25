@@ -108,3 +108,50 @@ jobs:
                   if actual < minimum:
                       sys.exit("Coverage quality gate failed")
                   PY
+
+    business-logic-quality-gate:
+        name: Validate Business Logic Coverage
+        needs: test-and-coverage
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Download coverage artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: dotnet-test-coverage-${{ github.run_number }}
+                  path: ./coverage-data
+
+            - name: Validate DiscountService coverage
+              env:
+                  MIN_LINE_COVERAGE: "80"
+              run: |
+                  python3 - <<'PY'
+                  import glob
+                  import os
+                  import sys
+                  import xml.etree.ElementTree as ET
+
+                  files = glob.glob("coverage-data/**/coverage.cobertura.xml", recursive=True)
+                  if not files:
+                      sys.exit("Coverage report not found")
+
+                  root = ET.parse(files[0]).getroot()
+                  classes = [
+                      c for c in root.findall(".//class")
+                      if c.get("name", "").split(".")[-1] == "DiscountService"
+                  ]
+
+                  if len(classes) != 1:
+                      sys.exit(f"Expected one DiscountService class, found {len(classes)}")
+
+                  actual = float(classes[0].get("line-rate", "0")) * 100
+                  minimum = float(os.environ["MIN_LINE_COVERAGE"])
+
+                  print(f"DiscountService coverage: {actual:.2f}%")
+                  print(f"Required coverage: {minimum:.2f}%")
+
+                  if actual < minimum:
+                      sys.exit("Business logic coverage gate failed")
+
+                  print("Business logic coverage gate passed")
+                  PY
