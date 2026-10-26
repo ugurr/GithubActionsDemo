@@ -97,3 +97,36 @@ jobs:
               run: |
                   docker push "$IMAGE:latest"
                   docker push "$IMAGE:sha-${GITHUB_SHA:0:12}"
+
+    deploy-render:
+        name: Deploy to Render
+        needs: publish-ghcr
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Trigger Render deployment
+              id: trigger-render-deployment
+              env:
+                RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+                IMAGE: ghcr.io/ugurr/githubactionsdemo
+              shell: bash
+              run: |
+                if [[ -z "$RENDER_DEPLOY_HOOK_URL" ]]; then
+                    echo "::error::RENDER_DEPLOY_HOOK_URL is missing"
+                    exit 1
+                fi
+
+                TAG="sha-${GITHUB_SHA:0:12}"
+
+                IMAGE_URL=$(IMAGE_URL="$IMAGE:$TAG" python3 -c \
+                    'import os, urllib.parse; print(urllib.parse.quote(os.environ["IMAGE_URL"], safe=""))')
+
+                SEPARATOR="?"
+                [[ "$RENDER_DEPLOY_HOOK_URL" == *"?"* ]] && SEPARATOR="&"
+
+                curl --fail --silent --show-error \
+                    --request POST \
+                    "${RENDER_DEPLOY_HOOK_URL}${SEPARATOR}imgURL=${IMAGE_URL}"
+
+                echo "Render deployment request submitted for $IMAGE:$TAG"
+
