@@ -27,7 +27,8 @@ jobs:
               uses: actions/checkout@v4
 
             - name: Build Docker image
-              run: docker build \
+              run: |
+                  docker build \
                   --build-arg APP_VERSION="$GITHUB_SHA" \
                   -t github-actions-demo:ci \
                   .
