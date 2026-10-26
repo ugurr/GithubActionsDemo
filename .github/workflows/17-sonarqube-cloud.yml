@@ -43,7 +43,6 @@ jobs:
                   dotnet sonarscanner begin \
                     /k:"$SONAR_PROJECT_KEY" \
                     /o:"$SONAR_ORGANIZATION" \
-                    /d:sonar.region=us \
                     /d:sonar.token="$SONAR_TOKEN" \
                     /d:sonar.cs.opencover.reportsPaths="TestResults/**/coverage.opencover.xml" \
                     /d:sonar.qualitygate.wait=true
