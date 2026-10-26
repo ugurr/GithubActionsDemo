@@ -18,12 +18,13 @@ jobs:
                   PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
                   BASE_REPO: ${{ github.repository }}
                   PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+                  PR_SOURCE_IS_FORK: ${{ github.event.pull_request.head.repo.fork }}
               run: |
                   echo "Event: $GITHUB_EVENT_NAME"
                   echo "PR source repository: $PR_HEAD_REPO"
                   echo "Target repository: $BASE_REPO"
                   echo "PR head commit: $PR_HEAD_SHA"
-
+                  echo "PR source is fork: $PR_SOURCE_IS_FORK"
                   if [[ "$PR_HEAD_REPO" == "$BASE_REPO" ]]; then
                     echo "PR comes from the same repository."
                   else
