@@ -47,4 +47,12 @@ public class DiscountServiceTests
         Assert.Throws<ArgumentException>(() =>
             _service.Calculate(100, -10));
     }
+
+    [Fact]
+    public void Calculate_ZeroPrice_ReturnsZero()
+    {
+        var result = _service.Calculate(0, 25);
+
+        Assert.Equal(0, result);
+    }
 }

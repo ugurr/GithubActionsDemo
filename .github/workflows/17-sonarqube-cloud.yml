@@ -8,6 +8,11 @@ on:
             - "tests/**"
             - "*.slnx"
             - ".github/workflows/17-sonarqube-cloud.yml"
+
+    pull_request:
+        branches: [main]
+        types: [opened, synchronize, reopened]
+
     workflow_dispatch:
 
 permissions:
