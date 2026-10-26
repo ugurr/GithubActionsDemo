@@ -1,0 +1,54 @@
+name: 22 - Azure OIDC Login
+
+on:
+    workflow_dispatch:
+
+permissions: {}
+
+jobs:
+    azure-login:
+        name: Authenticate Azure with OIDC
+        runs-on: ubuntu-latest
+
+        permissions:
+            id-token: write
+
+        steps:
+            - name: Validate Azure configuration
+              id: validate-azure-configuration
+              env:
+                  AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+                  AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+                  AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+              shell: bash
+              run: |
+                  if [[ -z "$AZURE_CLIENT_ID" ||
+                        -z "$AZURE_TENANT_ID" ||
+                        -z "$AZURE_SUBSCRIPTION_ID" ]]; then
+                    echo "::error::Missing Azure configuration."
+                    exit 1
+                  fi
+
+                  echo "Azure configuration is available."
+
+            - name: Authenticate to Azure using OIDC
+              id: authenticate-azure
+              uses: azure/login@v3
+              with:
+                  client-id: ${{ vars.AZURE_CLIENT_ID }}
+                  tenant-id: ${{ vars.AZURE_TENANT_ID }}
+                  subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+            - name: Verify Azure identity
+              id: verify-azure-identity
+              run: |
+                  az account show \
+                    --query "{subscription:name, tenant:tenantId, principal:user.name}" \
+                    --output json
+
+            - name: Verify Azure Reader access
+              id: verify-reader-access
+              run: |
+                  az group list \
+                    --query "[].{name:name, location:location}" \
+                    --output table
