@@ -23,4 +23,7 @@ EXPOSE 8080
 
 USER $APP_UID
 
+ARG APP_VERSION=local
+ENV APP_VERSION=$APP_VERSION
+
 ENTRYPOINT ["dotnet", "GithubActionsDemo.dll"]

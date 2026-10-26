@@ -25,5 +25,12 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
 
-
+app.MapGet("/version", (IConfiguration configuration) =>
+{
+    return Results.Ok(new
+    {
+        Version = configuration["APP_VERSION"] ?? "local",
+        Environment = app.Environment.EnvironmentName
+    });
+});
 app.Run();
