@@ -1,29 +1,42 @@
-
 name: 18 - Token Permissions Lab
 
 on:
-  workflow_dispatch:
+    workflow_dispatch:
 
 permissions:
-  contents: read
+    contents: read
 
 jobs:
-  inspect-token-permissions:
-    name: Inspect GITHUB_TOKEN Permissions
-    runs-on: ubuntu-latest
+    inspect-token-permissions:
+        name: Inspect GITHUB_TOKEN Permissions
+        runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
 
-      - name: Inspect repository metadata
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api repos/${{ github.repository }} \
-            --jq '{name: .full_name, private: .private, default_branch: .default_branch}'
+            - name: Inspect repository metadata
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  gh api repos/${{ github.repository }} \
+                    --jq '{name: .full_name, private: .private, default_branch: .default_branch}'
 
-      - name: Explain effective permissions
-        run: |
-          echo "Repository metadata was read successfully."
-          echo "This job does not need contents: write."
+            - name: Explain effective permissions
+              run: |
+                  echo "Repository metadata was read successfully."
+                  echo "This job does not need contents: write."
+
+            - name: Verify read-only token cannot create branch
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  if gh api --method POST \
+                    "repos/${{ github.repository }}/git/refs" \
+                    -f ref="refs/heads/token-write-probe" \
+                    -f sha="${{ github.sha }}"; then
+                    echo "::error::Unexpected write access!"
+                    exit 1
+                  else
+                    echo "Branch creation was rejected, as expected."
+                  fi
