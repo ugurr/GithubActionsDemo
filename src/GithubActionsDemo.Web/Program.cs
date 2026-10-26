@@ -33,4 +33,11 @@ app.MapGet("/version", (IConfiguration configuration) =>
         Environment = app.Environment.EnvironmentName
     });
 });
+
+app.MapGet("/api/calculate-discount", (decimal price, decimal discount) =>
+{
+    var discountedPrice = price - (price * discount / 100);
+    return Results.Ok(new { discountedPrice });
+});
+
 app.Run();
