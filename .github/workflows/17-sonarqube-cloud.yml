@@ -1,0 +1,96 @@
+name: 17 - SonarQube Cloud Analysis
+
+on:
+    push:
+        branches: [main]
+        paths:
+            - "src/**"
+            - "tests/**"
+            - "*.slnx"
+            - ".github/workflows/17-sonarqube-cloud.yml"
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    sonar-analysis:
+        name: .NET SonarQube Quality Gate
+        runs-on: ubuntu-latest
+
+        env:
+            SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+            SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
+            SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+
+        steps:
+            - name: Checkout source with full Git history
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Verify .NET SDK
+              run: dotnet --info
+
+            - name: Restore locked NuGet dependencies
+              run: dotnet restore GithubActionsDemo.slnx --locked-mode
+
+            - name: Install SonarScanner for .NET
+              run: dotnet tool install --global dotnet-sonarscanner
+
+            - name: Begin SonarQube analysis
+              run: |
+                  dotnet sonarscanner begin \
+                    /k:"$SONAR_PROJECT_KEY" \
+                    /o:"$SONAR_ORGANIZATION" \
+                    /d:sonar.region=us \
+                    /d:sonar.token="$SONAR_TOKEN" \
+                    /d:sonar.cs.opencover.reportsPaths="TestResults/**/coverage.opencover.xml" \
+                    /d:sonar.qualitygate.wait=true
+
+            - name: Build solution with SonarQube analyzers
+              run: >
+                  dotnet build GithubActionsDemo.slnx
+                  --configuration Release
+                  --no-restore
+                  --no-incremental
+
+            - name: Run xUnit tests and collect OpenCover
+              run: >
+                  dotnet test tests/GithubActionsDemo.Tests/GithubActionsDemo.Tests.csproj
+                  --configuration Release
+                  --no-build
+                  --collect:"XPlat Code Coverage;Format=cobertura,opencover"
+                  --logger "trx;LogFileName=unit-tests.trx"
+                  --results-directory ./TestResults
+
+            - name: Verify OpenCover report exists
+              run: |
+                  python3 - <<'PY'
+                  import glob
+                  import sys
+
+                  reports = glob.glob(
+                      "TestResults/**/coverage.opencover.xml",
+                      recursive=True
+                  )
+
+                  if not reports:
+                      sys.exit("OpenCover report not found")
+
+                  for report in reports:
+                      print(f"OpenCover report found: {report}")
+                  PY
+
+            - name: End SonarQube analysis and check Quality Gate
+              run: |
+                  dotnet sonarscanner end \
+                    /d:sonar.token="$SONAR_TOKEN"
+
+            - name: Upload test and OpenCover reports
+              if: ${{ !cancelled() }}
+              uses: actions/upload-artifact@v4
+              with:
+                  name: sonar-test-coverage-${{ github.run_number }}
+                  path: TestResults/
+                  if-no-files-found: warn
