@@ -1,0 +1,99 @@
+name: 24 - Docker Build and GHCR
+
+on:
+    pull_request:
+        branches: [main]
+        paths:
+            - "Dockerfile"
+            - ".dockerignore"
+            - "src/GithubActionsDemo.Web/**"
+            - ".github/workflows/24-docker-ghcr.yml"
+
+    push:
+        branches: [main]
+
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    docker-smoke-test:
+        name: Docker Build and Smoke Test
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Build Docker image
+              run: docker build -t github-actions-demo:ci .
+
+            - name: Start container
+              run: |
+                  docker run -d \
+                    --name github-actions-demo-test \
+                    -p 8080:8080 \
+                    github-actions-demo:ci
+
+            - name: Verify HTTP response
+              run: |
+                  for attempt in {1..15}; do
+                    if curl --fail --silent \
+                      http://localhost:8080/ > /dev/null; then
+                      echo "Container smoke test PASSED."
+                      exit 0
+                    fi
+                    sleep 2
+                  done
+
+                  docker logs github-actions-demo-test
+                  exit 1
+
+            - name: Stop container
+              if: always()
+              run: docker rm -f github-actions-demo-test || true
+
+    publish-ghcr:
+        name: Publish Image to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        needs: docker-smoke-test
+        runs-on: ubuntu-latest
+
+        permissions:
+            contents: read
+            packages: write
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Login to GitHub Container Registry
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  echo "$GH_TOKEN" | docker login ghcr.io \
+                    -u "${{ github.actor }}" \
+                    --password-stdin
+
+            - name: Build and tag image
+              id: build-container-image
+              env:
+                  REPOSITORY: ${{ github.repository }}
+                  COMMIT_SHA: ${{ github.sha }}
+              run: |
+                  IMAGE="ghcr.io/${REPOSITORY,,}"
+
+                  docker build \
+                    -t "$IMAGE:latest" \
+                    -t "$IMAGE:sha-${COMMIT_SHA:0:12}" \
+                    .
+
+                  echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+
+            - name: Push image to GHCR
+              env:
+                  IMAGE: ${{ steps.build-container-image.outputs.image }}
+              run: |
+                  docker push "$IMAGE:latest"
+                  docker push "$IMAGE:sha-${GITHUB_SHA:0:12}"
