@@ -11,7 +11,7 @@ public class DiscountServiceTests
     {
         var result = _service.Calculate(100, 20);
 
-        Assert.Equal(80, result);
+        Assert.Equal(999, result);
     }
 
     [Theory]
