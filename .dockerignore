@@ -1,0 +1,14 @@
+
+.git
+.github
+**/bin
+**/obj
+**/TestResults
+**/coverage
+.vs
+.vscode
+.idea
+.env
+.env.*
+**/secrets.json
+**/appsettings.Development.json
