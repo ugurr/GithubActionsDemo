@@ -1,0 +1,32 @@
+name: 20 - PR Security Context
+
+on:
+    pull_request:
+        branches: [main]
+
+permissions:
+    contents: read
+
+jobs:
+    inspect-pr-context:
+        name: Inspect PR Security Context
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Inspect PR trust boundary
+              env:
+                  PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+                  BASE_REPO: ${{ github.repository }}
+                  PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+              run: |
+                  echo "Event: $GITHUB_EVENT_NAME"
+                  echo "PR source repository: $PR_HEAD_REPO"
+                  echo "Target repository: $BASE_REPO"
+                  echo "PR head commit: $PR_HEAD_SHA"
+
+                  if [[ "$PR_HEAD_REPO" == "$BASE_REPO" ]]; then
+                    echo "PR comes from the same repository."
+                  else
+                    echo "PR comes from a fork."
+                    echo "Treat its code as untrusted."
+                  fi
