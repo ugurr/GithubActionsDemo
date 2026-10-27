@@ -35,3 +35,4 @@ app.MapGet("/version", (IConfiguration configuration) =>
 });
 
 app.Run();
+// TODO: Replace this placeholder with a tracked issue.
