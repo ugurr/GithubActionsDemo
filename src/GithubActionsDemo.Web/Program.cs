@@ -35,4 +35,4 @@ app.MapGet("/version", (IConfiguration configuration) =>
 });
 
 app.Run();
-// TODO: Replace this placeholder with a tracked issue.
+// TODO: Add a tracking issue for this placeholder before release.
