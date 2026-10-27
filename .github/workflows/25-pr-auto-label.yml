@@ -1,0 +1,43 @@
+name: PR Auto Label
+
+on:
+    pull_request_target:
+        types: [opened, synchronize, reopened]
+
+permissions:
+    contents: read
+    pull-requests: write
+
+jobs:
+    label:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Add labels based on changed files
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  PR_NUMBER: ${{ github.event.pull_request.number }}
+                  REPOSITORY: ${{ github.repository }}
+              run: |
+                  gh api \
+                    "repos/$REPOSITORY/pulls/$PR_NUMBER/files" \
+                    --paginate \
+                    --jq '.[].filename' > files.txt
+
+                  if grep -q '^src/GithubActionsDemo.Web/' files.txt; then
+                    gh pr edit "$PR_NUMBER" \
+                      --repo "$REPOSITORY" \
+                      --add-label backend
+                  fi
+
+                  if grep -q '^.github/workflows/' files.txt; then
+                    gh pr edit "$PR_NUMBER" \
+                      --repo "$REPOSITORY" \
+                      --add-label ci-cd
+                  fi
+
+                  if grep -q '^Dockerfile$' files.txt; then
+                    gh pr edit "$PR_NUMBER" \
+                      --repo "$REPOSITORY" \
+                      --add-label docker
+                  fi
