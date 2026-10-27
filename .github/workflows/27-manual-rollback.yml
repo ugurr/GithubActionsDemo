@@ -1,0 +1,140 @@
+name: 27 - Manual Production Rollback
+
+on:
+    workflow_dispatch:
+        inputs:
+            target_sha:
+                description: "Full commit SHA of the last known-good version"
+                required: true
+                type: string
+            dry_run:
+                description: "Validate rollback without deploying"
+                required: true
+                default: true
+                type: boolean
+
+permissions:
+    contents: read
+    packages: read
+
+jobs:
+    rollback:
+        name: Production Rollback
+        if: github.ref == 'refs/heads/main'
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+
+        environment:
+            name: production
+            url: ${{ vars.RENDER_SERVICE_URL }}
+
+        steps:
+            - name: Validate rollback target
+              id: target
+              env:
+                  TARGET_SHA: ${{ inputs.target_sha }}
+              shell: bash
+              run: |
+                  set -euo pipefail
+
+                  if [[ ! "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+                    echo "::error::A full 40-character lowercase commit SHA is required"
+                    exit 1
+                  fi
+
+                  IMAGE="ghcr.io/ugurr/githubactionsdemo:sha-${TARGET_SHA:0:12}"
+
+                  echo "sha=$TARGET_SHA" >> "$GITHUB_OUTPUT"
+                  echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+
+                  echo "Rollback target SHA: $TARGET_SHA"
+                  echo "Rollback image: $IMAGE"
+
+            - name: Check image availability
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  IMAGE: ${{ steps.target.outputs.image }}
+              shell: bash
+              run: |
+                  set -euo pipefail
+
+                  echo "$GH_TOKEN" | docker login ghcr.io \
+                    -u "${{ github.actor }}" \
+                    --password-stdin
+
+                  docker manifest inspect "$IMAGE" > /dev/null
+
+                  echo "Rollback image exists in GHCR."
+
+            - name: Trigger rollback deployment
+              if: inputs.dry_run == false
+              env:
+                  RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+                  IMAGE: ${{ steps.target.outputs.image }}
+              shell: bash
+              run: |
+                  set -euo pipefail
+
+                  if [[ -z "$RENDER_DEPLOY_HOOK_URL" ]]; then
+                    echo "::error::Render deploy hook is missing"
+                    exit 1
+                  fi
+
+                  IMAGE_URL=$(IMAGE_URL="$IMAGE" python3 -c \
+                    'import os, urllib.parse; print(urllib.parse.quote(os.environ["IMAGE_URL"], safe=""))')
+
+                  SEPARATOR="?"
+                  [[ "$RENDER_DEPLOY_HOOK_URL" == *"?"* ]] && SEPARATOR="&"
+
+                  curl --fail --silent --show-error \
+                    --request POST \
+                    "${RENDER_DEPLOY_HOOK_URL}${SEPARATOR}imgURL=${IMAGE_URL}"
+
+                  echo "Rollback deployment requested."
+
+            - name: Verify rollback version
+              if: inputs.dry_run == false
+              env:
+                  SERVICE_URL: ${{ vars.RENDER_SERVICE_URL }}
+                  EXPECTED_SHA: ${{ steps.target.outputs.sha }}
+              shell: bash
+              run: |
+                  set -euo pipefail
+
+                  if [[ -z "$SERVICE_URL" ]]; then
+                    echo "::error::Production service URL is missing"
+                    exit 1
+                  fi
+
+                  for attempt in {1..40}; do
+                    echo "Rollback verification attempt $attempt/40"
+
+                    if RESPONSE=$(curl --fail --silent \
+                      --max-time 10 "${SERVICE_URL%/}/version"); then
+
+                      ACTUAL_SHA=$(jq -r \
+                        '.version // .Version // empty' \
+                        <<< "$RESPONSE" 2>/dev/null || true)
+
+                      if [[ "$ACTUAL_SHA" == "$EXPECTED_SHA" ]]; then
+                        echo "Rollback verified: $ACTUAL_SHA"
+                        exit 0
+                      fi
+                    fi
+
+                    if [[ "$attempt" -lt 40 ]]; then
+                      sleep 15
+                    fi
+                  done
+
+                  echo "::error::Rollback version verification failed"
+                  exit 1
+
+            - name: Summarize dry run
+              if: inputs.dry_run == true
+              env:
+                  IMAGE: ${{ steps.target.outputs.image }}
+              run: |
+                  echo "Dry run successful."
+                  echo "Validated image: $IMAGE"
+                  echo "No Render deployment was triggered."
