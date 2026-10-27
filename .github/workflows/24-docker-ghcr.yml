@@ -108,6 +108,10 @@ jobs:
         needs: publish-ghcr
         runs-on: ubuntu-latest
 
+        environment:
+            name: production
+            url: ${{ vars.RENDER_SERVICE_URL }}
+
         steps:
             - name: Trigger Render deployment
               id: trigger-render-deployment
