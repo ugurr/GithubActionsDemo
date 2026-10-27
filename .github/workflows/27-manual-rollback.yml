@@ -142,3 +142,11 @@ jobs:
                   echo "Dry run successful."
                   echo "Validated image: $IMAGE"
                   echo "No Render deployment was triggered."
+
+            - name: Simulate long-running deployment
+              if: inputs.dry_run == true
+              shell: bash
+              run: |
+                  echo "Holding production concurrency lock for 90 seconds..."
+                  sleep 90
+                  echo "Simulation completed."
