@@ -33,4 +33,5 @@ app.MapGet("/version", (IConfiguration configuration) =>
         Environment = app.Environment.EnvironmentName
     });
 });
+
 app.Run();
