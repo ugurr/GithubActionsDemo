@@ -60,7 +60,7 @@ jobs:
 
     publish-ghcr:
         name: Publish Image to GHCR
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         needs: docker-smoke-test
         runs-on: ubuntu-latest
 
