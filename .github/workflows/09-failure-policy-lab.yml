@@ -12,8 +12,7 @@ on:
           - stable
           - preview
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   compatibility:

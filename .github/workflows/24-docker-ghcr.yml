@@ -107,6 +107,9 @@ jobs:
         name: Deploy to Render
         needs: publish-ghcr
         runs-on: ubuntu-latest
+
+        permissions: {}
+
         concurrency:
             group: production-deployment
             cancel-in-progress: false
