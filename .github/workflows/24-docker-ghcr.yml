@@ -178,20 +178,32 @@ jobs:
                   IMAGE_REF: ${{ needs.publish-ghcr.outputs.image-ref }}
               shell: bash
               run: |
-                  if [[ -z "$RENDER_DEPLOY_HOOK_URL" ]]; then
-                      echo "::error::RENDER_DEPLOY_HOOK_URL is missing"
-                      exit 1
+                  set -euo pipefail
+
+                  # 1. Validate immutable image reference
+                  if [[ ! "$IMAGE_REF" =~ ^ghcr\.io/ugurr/githubactionsdemo@sha256:[0-9a-f]{64}$ ]]; then
+                    echo "::error::Invalid immutable image reference"
+                    exit 1
                   fi
 
+                  # 2. Validate Render deploy hook
+                  if [[ -z "$RENDER_DEPLOY_HOOK_URL" ]]; then
+                    echo "::error::RENDER_DEPLOY_HOOK_URL is missing"
+                    exit 1
+                  fi
+
+                  # 3. URL encode immutable image reference
                   IMAGE_URL=$(IMAGE_URL="$IMAGE_REF" python3 -c \
                     'import os, urllib.parse; print(urllib.parse.quote(os.environ["IMAGE_URL"], safe=""))')
 
+                  # 4. Determine query parameter separator
                   SEPARATOR="?"
                   [[ "$RENDER_DEPLOY_HOOK_URL" == *"?"* ]] && SEPARATOR="&"
 
+                  # 5. Trigger Render deployment
                   curl --fail --silent --show-error \
-                      --request POST \
-                      "${RENDER_DEPLOY_HOOK_URL}${SEPARATOR}imgURL=${IMAGE_URL}"
+                    --request POST \
+                    "${RENDER_DEPLOY_HOOK_URL}${SEPARATOR}imgURL=${IMAGE_URL}"
 
                   echo "Render deployment request submitted for $IMAGE_REF"
 
@@ -202,13 +214,9 @@ jobs:
               shell: bash
               run: |
                   set -euo pipefail
-                  if [[ ! "$IMAGE_REF" =~ ^ghcr\.io/ugurr/githubactionsdemo@sha256:[0-9a-f]{64}$ ]]; then
-                    echo "::error::Invalid immutable image reference"
-                    exit 1
-                  fi
 
-                  if [[ -z "$RENDER_DEPLOY_HOOK_URL" ]]; then
-                    echo "::error::RENDER_DEPLOY_HOOK_URL is missing"
+                  if [[ -z "$SERVICE_URL" ]]; then
+                    echo "::error::RENDER_SERVICE_URL is missing"
                     exit 1
                   fi
 
