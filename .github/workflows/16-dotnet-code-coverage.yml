@@ -18,8 +18,8 @@ jobs:
         runs-on: ubuntu-latest
 
         steps:
-            - name: Checkout source
-              uses: actions/checkout@v4
+            - name: Secure Checkout
+              uses: $/.github/actions/secure-checkout
 
             - name: Verify .NET SDK
               run: dotnet --version

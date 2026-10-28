@@ -51,8 +51,8 @@ jobs:
             package_name: ${{ steps.package.outputs.name }}
 
         steps:
-            - name: Checkout
-              uses: actions/checkout@v4
+            - name: Secure Checkout
+              uses: $/.github/actions/secure-checkout
 
             - name: Setup .NET SDK
               uses: actions/setup-dotnet@v6

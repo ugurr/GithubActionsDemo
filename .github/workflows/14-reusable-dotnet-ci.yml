@@ -28,8 +28,8 @@ jobs:
             build-result: ${{ steps.report-ci-result.outputs.result }}
 
         steps:
-            - name: Checkout source
-              uses: actions/checkout@v4
+            - name: Secure Checkout
+              uses: $/.github/actions/secure-checkout
 
             - name: Verify preinstalled .NET SDK
               run: |

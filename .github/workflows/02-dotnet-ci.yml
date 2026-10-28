@@ -16,7 +16,7 @@ jobs:
         runs-on: ubuntu-latest
 
         steps:
-            - name: Secure source
+            - name: Secure Checkout
               uses: $/.github/actions/secure-checkout
 
             - name: Inspect preinstalled .NET SDKs

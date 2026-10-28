@@ -17,8 +17,8 @@ jobs:
         runs-on: ubuntu-latest
 
         steps:
-            - name: Checkout
-              uses: actions/checkout@v4
+            - name: Secure Checkout
+              uses: $/.github/actions/secure-checkout
 
             - name: Setup .NET and cache
               id: dotnet
