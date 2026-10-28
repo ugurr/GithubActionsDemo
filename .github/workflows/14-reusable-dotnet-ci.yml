@@ -18,6 +18,8 @@ on:
             build-result:
                 description: Result of the .NET CI job
                 value: ${{ jobs.dotnet-ci.outputs.build-result }}
+permissions:
+    contents: read
 
 jobs:
     dotnet-ci:
