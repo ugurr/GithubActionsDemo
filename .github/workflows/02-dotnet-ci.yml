@@ -1,73 +1,73 @@
 name: 02 - .NET CI
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-  workflow_dispatch:
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+    workflow_dispatch:
 
 permissions:
-  contents: read
+    contents: read
 
 jobs:
-  build-and-test:
-    name: Build and Test .NET 10
-    runs-on: ubuntu-latest
+    build-and-test:
+        name: Build and Test .NET 10
+        runs-on: ubuntu-latest
 
-    steps:
-      - name: Secure source
-        uses: ./.github/actions/secure-checkout
+        steps:
+            - name: Secure source
+              uses: $/.github/actions/secure-checkout
 
-      - name: Inspect preinstalled .NET SDKs
-        run: |
-          dotnet --list-sdks
-          dotnet --list-runtimes
+            - name: Inspect preinstalled .NET SDKs
+              run: |
+                  dotnet --list-sdks
+                  dotnet --list-runtimes
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: "10.0.x"
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v6
+              with:
+                  dotnet-version: "10.0.x"
 
-      - name: Show SDK version
-        run: dotnet --version
+            - name: Show SDK version
+              run: dotnet --version
 
-      - name: Restore dependencies
-        run: dotnet restore GithubActionsDemo.slnx
+            - name: Restore dependencies
+              run: dotnet restore GithubActionsDemo.slnx
 
-      - name: Build solution
-        run: dotnet build GithubActionsDemo.slnx --no-restore --configuration Release
+            - name: Build solution
+              run: dotnet build GithubActionsDemo.slnx --no-restore --configuration Release
 
-      - name: Run unit tests
-        run: |
-          dotnet test GithubActionsDemo.slnx \
-          --no-restore \
-          --configuration Release \
-          --logger "trx;LogFileName=unit-tests.trx" \
-          --results-directory ./TestResults
+            - name: Run unit tests
+              run: |
+                  dotnet test GithubActionsDemo.slnx \
+                  --no-restore \
+                  --configuration Release \
+                  --logger "trx;LogFileName=unit-tests.trx" \
+                  --results-directory ./TestResults
 
-      - name: Runs only after success
-        if: ${{ success() }}
-        run: echo "Previous steps succeeded."
+            - name: Runs only after success
+              if: ${{ success() }}
+              run: echo "Previous steps succeeded."
 
-      - name: Runs when a step fails
-        if: ${{ failure() }}
-        run: echo "A previous step failed."
+            - name: Runs when a step fails
+              if: ${{ failure() }}
+              run: echo "A previous step failed."
 
-      - name: Inspect test results
-        if: ${{ always() }}
-        run: |
-          echo "Inspecting test results..."
-          if [ -d TestResults ]; then
-            ls -la TestResults
-          else
-            echo "TestResults directory not found."
-          fi
+            - name: Inspect test results
+              if: ${{ always() }}
+              run: |
+                  echo "Inspecting test results..."
+                  if [ -d TestResults ]; then
+                    ls -la TestResults
+                  else
+                    echo "TestResults directory not found."
+                  fi
 
-      - name: Upload test results
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: unit-test-results
-          path: TestResults/
-          if-no-files-found: warn
+            - name: Upload test results
+              if: ${{ !cancelled() }}
+              uses: actions/upload-artifact@v4
+              with:
+                  name: unit-test-results
+                  path: TestResults/
+                  if-no-files-found: warn

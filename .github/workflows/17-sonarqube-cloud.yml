@@ -30,7 +30,7 @@ jobs:
 
         steps:
             - name: Secure source
-              uses: ./.github/actions/secure-checkout
+              uses: $/.github/actions/secure-checkout
               with:
                   fetch-depth: 0
 

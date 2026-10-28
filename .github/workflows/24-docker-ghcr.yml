@@ -24,7 +24,7 @@ jobs:
 
         steps:
             - name: Secure source
-              uses: ./.github/actions/secure-checkout
+              uses: $/.github/actions/secure-checkout
 
             - name: Build Docker image
               run: |
@@ -70,7 +70,7 @@ jobs:
 
         steps:
             - name: Secure source
-              uses: ./.github/actions/secure-checkout
+              uses: $/.github/actions/secure-checkout
 
             - name: Login to GitHub Container Registry
               env:
