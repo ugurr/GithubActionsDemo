@@ -1,0 +1,62 @@
+name: 32 - Reusable .NET CI
+
+on:
+    workflow_call:
+        inputs:
+            dotnet-version:
+                description: ".NET SDK version"
+                required: false
+                type: string
+                default: "10.0.x"
+
+            build-configuration:
+                description: "Build configuration"
+                required: false
+                type: string
+                default: "Release"
+
+permissions:
+    contents: read
+
+jobs:
+    build-and-test:
+        name: Build and Test .NET 10
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Secure Checkout
+              uses: $/.github/actions/secure-checkout
+
+            - name: Setup .NET
+              uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+              with:
+                  dotnet-version: ${{ inputs.dotnet-version }}
+
+            - name: Restore
+              run: dotnet restore GithubActionsDemo.slnx
+
+            - name: Build
+              env:
+                  BUILD_CONFIGURATION: ${{ inputs.build-configuration }}
+              run: |
+                  dotnet build GithubActionsDemo.slnx \
+                    --no-restore \
+                    --configuration "$BUILD_CONFIGURATION"
+
+            - name: Test
+              env:
+                  BUILD_CONFIGURATION: ${{ inputs.build-configuration }}
+              run: |
+                  dotnet test GithubActionsDemo.slnx \
+                    --no-restore \
+                    --configuration "$BUILD_CONFIGURATION" \
+                    --logger "trx;LogFileName=unit-tests.trx" \
+                    --results-directory ./TestResults
+
+            - name: Upload test results
+              if: ${{ !cancelled() }}
+              uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+              with:
+                  name: unit-test-results
+                  path: TestResults/
+                  if-no-files-found: warn
