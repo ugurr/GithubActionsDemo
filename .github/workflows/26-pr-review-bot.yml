@@ -5,9 +5,7 @@ on:
         types: [opened, reopened, synchronize, ready_for_review]
         branches: [main]
 
-permissions:
-    pull-requests: write
-    issues: write
+permissions: {}
 
 concurrency:
     group: pr-review-${{ github.event.pull_request.number }}
