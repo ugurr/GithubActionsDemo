@@ -26,11 +26,11 @@ jobs:
                       quality: "preview"
 
         steps:
-            - name: Checkout repository
-              uses: actions/checkout@v4
+            - name: Secure Checkout
+              uses: $/.github/actions/secure-checkout
 
             - name: Setup .NET SDK
-              uses: actions/setup-dotnet@v6
+              uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
               with:
                   dotnet-version: ${{ matrix.sdk }}
                   dotnet-quality: ${{ matrix.quality }}

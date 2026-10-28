@@ -23,7 +23,7 @@ jobs:
         runs-on: ubuntu-latest
 
         steps:
-            - name: Secure source
+            - name: Secure Checkout
               uses: $/.github/actions/secure-checkout
 
             - name: Build Docker image
@@ -69,7 +69,7 @@ jobs:
             packages: write
 
         steps:
-            - name: Secure source
+            - name: Secure Checkout
               uses: $/.github/actions/secure-checkout
 
             - name: Login to GitHub Container Registry
@@ -107,6 +107,9 @@ jobs:
         name: Deploy to Render
         needs: publish-ghcr
         runs-on: ubuntu-latest
+
+        permissions: {}
+
         concurrency:
             group: production-deployment
             cancel-in-progress: false

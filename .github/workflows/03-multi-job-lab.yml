@@ -27,7 +27,7 @@ jobs:
           cat message.txt
 
       - name: Upload message artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: job-a-message
           path: message.txt
@@ -60,7 +60,7 @@ jobs:
           echo "Job B finished working"
 
       - name: Download message artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: job-a-message
           path: .

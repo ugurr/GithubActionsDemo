@@ -3,8 +3,7 @@ name: 04 - Job Failure Lab
 on:
     workflow_dispatch:
 
-permissions:
-    contents: read
+permissions: {}
 
 jobs:
     job-a:

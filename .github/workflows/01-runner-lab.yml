@@ -26,8 +26,8 @@ jobs:
       - name: List files before checkout
         run: ls -la
 
-      - name: Checkout source code
-        uses: actions/checkout@v4
+      - name: Secure Checkout
+        uses: $/.github/actions/secure-checkout
 
       - name: List files after checkout
         run: |
