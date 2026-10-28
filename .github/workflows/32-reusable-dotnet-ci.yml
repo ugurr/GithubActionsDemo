@@ -20,7 +20,7 @@ permissions:
 
 jobs:
     build-and-test:
-        name: Reusable Build and Test
+        name: Build and Test .NET 10
         runs-on: ubuntu-latest
 
         steps:
