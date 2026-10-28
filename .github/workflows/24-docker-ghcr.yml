@@ -207,8 +207,8 @@ jobs:
                     exit 1
                   fi
 
-                  if [[ -z "$SERVICE_URL" ]]; then
-                    echo "::error::RENDER_SERVICE_URL is missing"
+                  if [[ -z "$RENDER_DEPLOY_HOOK_URL" ]]; then
+                    echo "::error::RENDER_DEPLOY_HOOK_URL is missing"
                     exit 1
                   fi
 
