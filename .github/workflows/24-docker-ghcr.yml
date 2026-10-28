@@ -43,11 +43,14 @@ jobs:
             - name: Verify HTTP response
               run: |
                   for attempt in {1..15}; do
+                    echo "Smoke test attempt $attempt/15"
+
                     if curl --fail --silent \
                       http://localhost:8080/ > /dev/null; then
                       echo "Container smoke test PASSED."
                       exit 0
                     fi
+
                     sleep 2
                   done
 
@@ -64,9 +67,16 @@ jobs:
         needs: docker-smoke-test
         runs-on: ubuntu-latest
 
+        outputs:
+            image: ${{ steps.image-digest.outputs.image }}
+            digest: ${{ steps.image-digest.outputs.digest }}
+            image-ref: ${{ steps.image-digest.outputs.image-ref }}
+
         permissions:
             contents: read
             packages: write
+            id-token: write
+            attestations: write
 
         steps:
             - name: Secure Checkout
@@ -103,6 +113,48 @@ jobs:
                   docker push "$IMAGE:latest"
                   docker push "$IMAGE:sha-${GITHUB_SHA:0:12}"
 
+            - name: Resolve pushed image digest
+              id: image-digest
+              shell: bash
+              env:
+                  IMAGE: ${{ steps.build-container-image.outputs.image }}
+              run: |
+                  set -euo pipefail
+
+                  TAG="sha-${GITHUB_SHA:0:12}"
+
+                  DIGEST=$(docker buildx imagetools inspect \
+                    "$IMAGE:$TAG" \
+                    --format '{{.Manifest.Digest}}')
+
+                  if [[ ! "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+                    echo "::error::Invalid image digest: $DIGEST"
+                    exit 1
+                  fi
+
+                  {
+                    echo "image=$IMAGE"
+                    echo "digest=$DIGEST"
+                    echo "image-ref=$IMAGE@$DIGEST"
+                  } >> "$GITHUB_OUTPUT"
+
+                  echo "Published image: $IMAGE@$DIGEST"
+
+            - name: Generate Docker SBOM
+              uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
+              with:
+                  image: ${{ steps.image-digest.outputs.image-ref }}
+                  format: spdx-json
+                  artifact-name: docker-sbom.spdx.json
+                  output-file: docker-sbom.spdx.json
+
+            - name: Attest Docker image provenance
+              uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+              with:
+                  subject-name: ${{ steps.image-digest.outputs.image }}
+                  subject-digest: ${{ steps.image-digest.outputs.digest }}
+                  push-to-registry: true
+
     deploy-render:
         name: Deploy to Render
         needs: publish-ghcr
@@ -123,7 +175,7 @@ jobs:
               id: trigger-render-deployment
               env:
                   RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
-                  IMAGE: ghcr.io/ugurr/githubactionsdemo
+                  IMAGE_REF: ${{ needs.publish-ghcr.outputs.image-ref }}
               shell: bash
               run: |
                   if [[ -z "$RENDER_DEPLOY_HOOK_URL" ]]; then
@@ -131,10 +183,8 @@ jobs:
                       exit 1
                   fi
 
-                  TAG="sha-${GITHUB_SHA:0:12}"
-
-                  IMAGE_URL=$(IMAGE_URL="$IMAGE:$TAG" python3 -c \
-                      'import os, urllib.parse; print(urllib.parse.quote(os.environ["IMAGE_URL"], safe=""))')
+                  IMAGE_URL=$(IMAGE_URL="$IMAGE_REF" python3 -c \
+                    'import os, urllib.parse; print(urllib.parse.quote(os.environ["IMAGE_URL"], safe=""))')
 
                   SEPARATOR="?"
                   [[ "$RENDER_DEPLOY_HOOK_URL" == *"?"* ]] && SEPARATOR="&"
@@ -143,7 +193,7 @@ jobs:
                       --request POST \
                       "${RENDER_DEPLOY_HOOK_URL}${SEPARATOR}imgURL=${IMAGE_URL}"
 
-                  echo "Render deployment request submitted for $IMAGE:$TAG"
+                  echo "Render deployment request submitted for $IMAGE_REF"
 
             - name: Verify deployed commit SHA
               env:
@@ -152,6 +202,10 @@ jobs:
               shell: bash
               run: |
                   set -euo pipefail
+                  if [[ ! "$IMAGE_REF" =~ ^ghcr\.io/ugurr/githubactionsdemo@sha256:[0-9a-f]{64}$ ]]; then
+                    echo "::error::Invalid immutable image reference"
+                    exit 1
+                  fi
 
                   if [[ -z "$SERVICE_URL" ]]; then
                     echo "::error::RENDER_SERVICE_URL is missing"

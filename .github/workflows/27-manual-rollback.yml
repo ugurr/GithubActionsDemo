@@ -54,7 +54,8 @@ jobs:
                   echo "Rollback target SHA: $TARGET_SHA"
                   echo "Rollback image: $IMAGE"
 
-            - name: Check image availability
+            - name: Resolve rollback image digest
+              id: rollback-image
               env:
                   GH_TOKEN: ${{ github.token }}
                   IMAGE: ${{ steps.target.outputs.image }}
@@ -63,18 +64,31 @@ jobs:
                   set -euo pipefail
 
                   echo "$GH_TOKEN" | docker login ghcr.io \
-                    -u "${{ github.actor }}" \
-                    --password-stdin
+                  -u "${{ github.actor }}" \
+                  --password-stdin
 
-                  docker manifest inspect "$IMAGE" > /dev/null
+                  DIGEST=$(docker buildx imagetools inspect \
+                  "$IMAGE" \
+                  --format '{{.Manifest.Digest}}')
 
-                  echo "Rollback image exists in GHCR."
+                  if [[ ! "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+                  echo "::error::Invalid rollback image digest"
+                  exit 1
+                  fi
+
+                  IMAGE_REPO="${IMAGE%:*}"
+                  IMAGE_REF="${IMAGE_REPO}@${DIGEST}"
+
+                  echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+                  echo "image-ref=$IMAGE_REF" >> "$GITHUB_OUTPUT"
+
+                  echo "Resolved rollback image: $IMAGE_REF"
 
             - name: Trigger rollback deployment
               if: inputs.dry_run == false
               env:
                   RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
-                  IMAGE: ${{ steps.target.outputs.image }}
+                  IMAGE_REF: ${{ steps.rollback-image.outputs.image-ref }}
               shell: bash
               run: |
                   set -euo pipefail
@@ -84,7 +98,7 @@ jobs:
                     exit 1
                   fi
 
-                  IMAGE_URL=$(IMAGE_URL="$IMAGE" python3 -c \
+                  IMAGE_URL=$(IMAGE_URL="$IMAGE_REF" python3 -c \
                     'import os, urllib.parse; print(urllib.parse.quote(os.environ["IMAGE_URL"], safe=""))')
 
                   SEPARATOR="?"
@@ -137,9 +151,8 @@ jobs:
             - name: Summarize dry run
               if: inputs.dry_run == true
               env:
-                  IMAGE: ${{ steps.target.outputs.image }}
+                  IMAGE_REF: ${{ steps.rollback-image.outputs.image-ref }}
               run: |
                   echo "Dry run successful."
-                  echo "Validated image: $IMAGE"
+                  echo "Validated immutable image: $IMAGE_REF"
                   echo "No Render deployment was triggered."
-           
