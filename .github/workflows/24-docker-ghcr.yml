@@ -23,8 +23,8 @@ jobs:
         runs-on: ubuntu-latest
 
         steps:
-            - name: Checkout repository
-              uses: actions/checkout@v4
+            - name: Secure source
+              uses: $/.github/actions/secure-checkout
 
             - name: Build Docker image
               run: |
@@ -69,8 +69,8 @@ jobs:
             packages: write
 
         steps:
-            - name: Checkout repository
-              uses: actions/checkout@v4
+            - name: Secure source
+              uses: $/.github/actions/secure-checkout
 
             - name: Login to GitHub Container Registry
               env:

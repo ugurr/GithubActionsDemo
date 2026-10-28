@@ -29,8 +29,8 @@ jobs:
             SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
 
         steps:
-            - name: Checkout source with full Git history
-              uses: actions/checkout@v4
+            - name: Secure source
+              uses: $/.github/actions/secure-checkout
               with:
                   fetch-depth: 0
 
