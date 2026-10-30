@@ -1,0 +1,74 @@
+name: 33 - Runner Security Recovery
+
+on:
+    workflow_dispatch:
+        inputs:
+            runner_available:
+                description: "Simulated trusted runner availability"
+                required: true
+                type: boolean
+                default: false
+
+permissions:
+    contents: read
+
+jobs:
+    runner-preflight:
+        name: Runner Availability Preflight
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+
+        outputs:
+            available: ${{ steps.check.outputs.available }}
+
+        steps:
+            - name: Evaluate simulated availability
+              id: check
+              shell: bash
+              env:
+                  RUNNER_AVAILABLE: ${{ inputs.runner_available }}
+              run: |
+                  set -euo pipefail
+
+                  echo "available=$RUNNER_AVAILABLE" >> "$GITHUB_OUTPUT"
+
+                  if [[ "$RUNNER_AVAILABLE" == "true" ]]; then
+                    echo "Trusted runner reported available."
+                  else
+                    echo "::warning::Trusted runner reported unavailable."
+                  fi
+
+    deployment-gate:
+        name: Validate Deployment Routing
+        needs: runner-preflight
+        if: ${{ needs.runner-preflight.outputs.available == 'true' }}
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+
+        steps:
+            - name: Validate trusted route
+              run: |
+                  echo "Runner availability gate passed."
+                  echo "Simulation only. No deployment executed."
+
+    recovery:
+        name: Safe Recovery Report
+        needs: [runner-preflight, deployment-gate]
+        if: ${{ always() && needs.runner-preflight.result == 'success' && needs.runner-preflight.outputs.available == 'false' }}
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+
+        steps:
+            - name: Generate incident report
+              shell: bash
+              run: |
+                  {
+                    echo "## Runner Availability Incident"
+                    echo ""
+                    echo "- Trusted runner: unavailable (simulated)"
+                    echo "- Deployment: blocked"
+                    echo "- Production changes: none"
+                    echo "- Next action: investigate runner availability"
+                  } >> "$GITHUB_STEP_SUMMARY"
+
+                  echo "::warning::Deployment blocked by runner policy"
